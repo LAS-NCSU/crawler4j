@@ -445,6 +445,9 @@ public class CrawlController extends Configurable {
                 frontier.schedule(webUrl);
             } else {
                 // using the WARN level here, as the user specifically asked to add this seed
+            	if (this.getCustomData() instanceof RobotsDenyNotice) {
+          		  ((RobotsDenyNotice) this.getCustomData()).urlDeniedByRobotsTxt(webUrl, true);
+          	  }
                 logger.warn("Robots.txt does not allow this seed: {}", pageUrl);
             }
             _seedDomains.add(webUrl.getDomain().toLowerCase());
