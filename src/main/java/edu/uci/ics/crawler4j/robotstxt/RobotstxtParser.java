@@ -94,8 +94,9 @@ public class RobotstxtParser {
                 logger.debug("Unrecognized line in robots.txt: {}", line);
             }
         }
-
-        directives.addDirectives(uaDirectives);
+        if (uaDirectives != null) {
+        	directives.addDirectives(uaDirectives);
+        }
         return directives;
     }
 }
