@@ -76,6 +76,10 @@ public class CrawlController extends Configurable {
 
     protected final Object waitingLock = new Object();
     protected final Environment env;
+    
+    // These two sets keep track of the domains and hosts that have been used in seeds. 
+    private java.util.HashSet<String> _seedDomains = new java.util.HashSet<String>();
+    private java.util.HashSet<String> _seedHosts = new java.util.HashSet<String>();
 
     public CrawlController(CrawlConfig config, PageFetcher pageFetcher,
                            RobotstxtServer robotstxtServer) throws Exception {
@@ -443,6 +447,8 @@ public class CrawlController extends Configurable {
                 // using the WARN level here, as the user specifically asked to add this seed
                 logger.warn("Robots.txt does not allow this seed: {}", pageUrl);
             }
+            _seedDomains.add(webUrl.getDomain().toLowerCase());
+            _seedHosts.add(webUrl.getSubDomain().equals("") ? webUrl.getDomain().toLowerCase() : webUrl.getSubDomain().toLowerCase()+"."+webUrl.getDomain().toLowerCase());
         }
     }
 
@@ -534,4 +540,25 @@ public class CrawlController extends Configurable {
         pageFetcher.shutDown();
         frontier.finish();
     }
+    
+    
+    /**
+     * Checks whether any of the seeds have the passed in domain name
+     * 
+     * @param domain domain to check if a seed member
+     * @return true/false based on check
+     */
+    public boolean hasDomainInSeeds(String domain) {
+  	  return _seedDomains.contains(domain.toLowerCase());
+    }
+    
+    /**
+     * Checks whether any of the seeds have the passed in domain name
+     * 
+     * @param host do we have the host in the domain seeds
+     * @return true/false based on check
+     */
+    public boolean hasHostInSeeds(String host) {
+  	  return _seedHosts.contains(host.toLowerCase());
+    }     
 }

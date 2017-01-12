@@ -19,12 +19,18 @@ package edu.uci.ics.crawler4j.crawler;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Set;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
+import org.apache.tika.Tika;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.Metadata;
 
 import edu.uci.ics.crawler4j.parser.ParseData;
 import edu.uci.ics.crawler4j.url.WebURL;
@@ -36,6 +42,11 @@ import edu.uci.ics.crawler4j.url.WebURL;
  */
 public class Page {
 
+	private static final Tika tika = new Tika();	
+	static { tika.setMaxStringLength(-1); }
+	
+	private HashMap<java.util.regex.Pattern,Boolean> relevanyPatternPresent;	
+	
     /**
      * The URL of this page.
      */
@@ -61,6 +72,11 @@ public class Page {
      */
     protected byte[] contentData;
 
+    /**
+     * The content of this page as text
+     */
+    protected String contentText;    
+    
     /**
      * The ContentType of this page.
      * For example: "text/html; charset=UTF-8"
@@ -246,10 +262,69 @@ public class Page {
         return contentData;
     }
 
-    public void setContentData(byte[] contentData) {
+    public synchronized void setContentData(byte[] contentData) {
         this.contentData = contentData;
-    }
+        this.contentText = null; // need to reset text as the content data may have been changed.
+        this.rawContent  = null; 
+      }
+      
+      private String rawContent = null;
 
+      /** 
+       * Gets the actual content for the page (ie, with all all html tags, etc...
+       * 
+       * @return the content of the page
+       */
+      public synchronized String getRawPageContentAsString() {
+    	  if (rawContent == null) {
+    		  try {
+    			rawContent = new String(this.getContentData(),this.getContentCharset());
+    		} catch (UnsupportedEncodingException e) {
+    			System.err.println("No supported encoding for webpage: "+ this.getContentCharset() );
+    			e.printStackTrace();
+    			rawContent = "";
+    		}
+    	  }
+    	  return rawContent;
+      }
+
+      private static String cleanText(String text) {
+    		String previous = "";
+    		while (text.equals(previous) == false) {
+    			previous = text;
+    			text = text.replaceAll("\t", " ");
+    			text = text.replaceAll("\n\n", "\n");
+    		    text = text.trim().replaceAll(" +", " ");
+    		    text = text.replaceAll("\n \n", "\n");
+    		    text = text.replaceAll("\n ", "\n");
+    		}
+    		return text;
+    	}
+      
+      /**
+       * @return the text content of the page as a String
+       */
+      public String getTextContent() {
+    	  
+    	  if (contentText == null) {
+    		    if (this.getContentData() == null || this.getContentData().length ==0) {
+    		    	contentText = ""; 
+    		    	return contentText;
+    		    }
+//    			ByteArrayInputStream stream = new ByteArrayInputStream();
+    			
+    			Metadata metadata = new Metadata();
+    		    try (TikaInputStream reader = TikaInputStream.get(this.getContentData(), metadata);){		    	
+    		    	String contents = tika.parseToString(reader, metadata);
+    		        contentText = Page.cleanText(contents);
+    		    }
+    		    catch(Throwable e) {
+    		    	System.err.println("Unable to parse Stream: "+e);
+    		    }
+    	  }
+    	  return contentText;
+      }      
+      
     /**
      * @return ContentType of this page.
      * For example: "text/html; charset=UTF-8"
@@ -300,4 +375,32 @@ public class Page {
     public boolean isTruncated() {
         return truncated;
     }
+    
+    
+    Boolean wikiMedia = null;
+    
+    public boolean isWikiMediaGenerated() {
+  	  if (wikiMedia == null) {
+  		  wikiMedia = Boolean.valueOf(this.getRawPageContentAsString().contains("<meta name=\"generator\" content=\"MediaWiki"));  
+  	  }
+  	  return wikiMedia.booleanValue();
+    }
+    
+    public boolean hasRelevancyPattern(java.util.regex.Pattern p) {
+  	  if (relevanyPatternPresent == null) {
+  		  relevanyPatternPresent = new HashMap<java.util.regex.Pattern,Boolean>();
+  	  }
+  	  if (!relevanyPatternPresent.containsKey(p)) {
+  		  relevanyPatternPresent.put(p, p.matcher(this.getTextContent()).find());
+  	  }
+  	  
+  	  
+  	  return relevanyPatternPresent.get(p);
+    }
+    
+    
+    public Set<WebURL> getOutgoingUrls() {
+  	  return this.getParseData().getOutgoingUrls();
+    }    
+    
 }

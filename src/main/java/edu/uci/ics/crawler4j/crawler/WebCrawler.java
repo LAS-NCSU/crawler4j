@@ -402,6 +402,10 @@ public class WebCrawler implements Runnable {
                                 webURL.setDocid(docIdServer.getNewDocID(movedToUrl));
                                 frontier.schedule(webURL);
                             } else {
+                            	if (this.getMyController().getCustomData() instanceof RobotsDenyNotice) {
+                          		  ((RobotsDenyNotice) this.getMyController().getCustomData()).urlDeniedByRobotsTxt(webURL, false);
+                          	  	}
+                            	
                                 logger.debug(
                                     "Not visiting: {} as per the server's \"robots.txt\" policy",
                                     webURL.getURL());
@@ -469,6 +473,9 @@ public class WebCrawler implements Runnable {
                                         webURL.setDocid(docIdServer.getNewDocID(webURL.getURL()));
                                         toSchedule.add(webURL);
                                     } else {
+                                    	if (this.getMyController().getCustomData() instanceof RobotsDenyNotice) {
+                                    		  ((RobotsDenyNotice) this.getMyController().getCustomData()).urlDeniedByRobotsTxt(webURL, false);
+                                    	}
                                         logger.debug(
                                             "Not visiting: {} as per the server's \"robots.txt\" " +
                                             "policy", webURL.getURL());
