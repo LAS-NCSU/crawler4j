@@ -397,7 +397,7 @@ public class CrawlController extends Configurable {
     public void addSeed(String pageUrl) {
         addSeed(pageUrl, -1);
     }
-
+    
     /**
      * Adds a new seed URL. A seed URL is a URL that is fetched by the crawler
      * to extract new URLs in it and follow them for crawling. You can also
@@ -411,13 +411,36 @@ public class CrawlController extends Configurable {
      * and have stored the results and want to start a new crawl with seeds
      * which get the same document ids as the previous crawl.
      *
-     * @param pageUrl
-     *            the URL of the seed
-     * @param docId
-     *            the document id that you want to be assigned to this seed URL.
-     *
+     * @param pageUrl the URL of the seed
+     * @param docId  the document id that you want to be assigned to this seed URL.
      */
     public void addSeed(String pageUrl, int docId) {
+    	addSeed(pageUrl, -1, 0);
+    }
+    
+    /**
+     * Adds a new seed URL. A seed URL is a URL that is fetched by the crawler
+     * to extract new URLs in it and follow them for crawling. You can also
+     * specify a specific document id to be assigned to this seed URL. This
+     * document id needs to be unique. Also, note that if you add three seeds
+     * with document ids 1,2, and 7. Then the next URL that is found during the
+     * crawl will get a doc id of 8. Also you need to ensure to add seeds in
+     * increasing order of document ids.
+     *
+     * Specifying doc ids is mainly useful when you have had a previous crawl
+     * and have stored the results and want to start a new crawl with seeds
+     * which get the same document ids as the previous crawl.
+     *
+     * @param pageUrl the URL of the seed
+     * @param docId  the document id that you want to be assigned to this seed URL. Send a negative integer if not known
+     * @param depth at what depth does this seed exist?
+     */
+    public void addSeed(String pageUrl, int docId, int depth) {
+    	if (depth > this.getConfig().getMaxDepthOfCrawling()) {
+    		logger.trace("Ignoring seed URL, depth is deeper than maxDepth");
+            return;
+    	}
+    	
         String canonicalUrl = URLCanonicalizer.getCanonicalURL(pageUrl);
         if (canonicalUrl == null) {
             logger.error("Invalid seed URL: {}", pageUrl);
