@@ -23,8 +23,9 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 
@@ -61,6 +62,10 @@ import org.apache.http.ssl.SSLContexts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
 import edu.uci.ics.crawler4j.crawler.Configurable;
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.authentication.AuthInfo;
@@ -79,11 +84,27 @@ public class PageFetcher extends Configurable {
     protected final Object mutex = new Object();
     protected PoolingHttpClientConnectionManager connectionManager;
     protected CloseableHttpClient httpClient;
-    protected long lastFetchTime = 0;
+    //protected long lastFetchTime = 0;
     protected IdleConnectionMonitorThread connectionMonitorThread = null;
+    protected LoadingCache<String,Long> lastFetchTimeForDomains = null;
 
     public PageFetcher(CrawlConfig config) {
         super(config);
+        
+        //Establish a cache to keep track of when a domain was last accessed for use in politeness delays
+        //Assume we won't hit more than 1,000 domains in a 5 minute mark, and that 5 minutes is the max
+        //delay for a particular domain
+        //e.g., we are only going to be polite to the same domain, not to our network.  Slankas 5 Feb 2017
+       lastFetchTimeForDomains = CacheBuilder.newBuilder()
+        	       .maximumSize(1000)
+        	       .expireAfterWrite(5, TimeUnit.MINUTES)
+        	       .build(
+        	           new CacheLoader<String, Long>() {
+        	             public Long load(String domain)  {
+        	               return 0L;
+        	             }
+        	           });
+        
 
         RequestConfig requestConfig = RequestConfig.custom()
                                                    .setExpectContinueEnabled(false)
@@ -247,11 +268,20 @@ public class PageFetcher extends Configurable {
             request = newHttpUriRequest(toFetchURL);
             // Applying Politeness delay
             synchronized (mutex) {
-                long now = (new Date()).getTime();
-                if ((now - lastFetchTime) < config.getPolitenessDelay()) {
-                    Thread.sleep(config.getPolitenessDelay() - (now - lastFetchTime));
+                long now = System.currentTimeMillis();
+                long delayTime = config.getPolitenessDelay();
+                long lastFetchTime;
+                try {
+                	lastFetchTime = lastFetchTimeForDomains.get(webUrl.getDomain());
                 }
-                lastFetchTime = (new Date()).getTime();
+                catch (ExecutionException e) {
+                	lastFetchTime = 0;
+                }
+                
+                if ((now - lastFetchTime) < delayTime) {
+                    Thread.sleep(delayTime - (now - lastFetchTime));
+                }
+                lastFetchTimeForDomains.put(webUrl.getDomain(), System.currentTimeMillis());
             }
 
             CloseableHttpResponse response = httpClient.execute(request);

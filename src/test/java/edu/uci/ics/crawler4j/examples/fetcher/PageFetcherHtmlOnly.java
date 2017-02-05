@@ -2,6 +2,7 @@ package edu.uci.ics.crawler4j.examples.fetcher;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpHead;
@@ -29,11 +30,20 @@ public class PageFetcherHtmlOnly extends PageFetcher {
             head = new HttpHead(toFetchURL);
 
             synchronized (mutex) {
-                long now = new Date().getTime();
-                if (now - this.lastFetchTime < this.config.getPolitenessDelay()) {
-                    Thread.sleep(this.config.getPolitenessDelay() - (now - this.lastFetchTime));
+                long now = System.currentTimeMillis();
+                long delayTime = config.getPolitenessDelay();
+                long lastFetchTime;
+                try {
+                	lastFetchTime = lastFetchTimeForDomains.get(webUrl.getDomain());
                 }
-                this.lastFetchTime = new Date().getTime();
+                catch (ExecutionException e) {
+                	lastFetchTime = 0;
+                }
+                
+                if ((now - lastFetchTime) < delayTime) {
+                    Thread.sleep(delayTime - (now - lastFetchTime));
+                }
+                lastFetchTimeForDomains.put(webUrl.getDomain(), System.currentTimeMillis());
             }
 
             HttpResponse response = httpClient.execute(head);
