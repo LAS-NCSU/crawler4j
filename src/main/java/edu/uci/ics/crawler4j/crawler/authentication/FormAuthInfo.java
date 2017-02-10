@@ -13,12 +13,17 @@ import javax.swing.text.html.FormSubmitEvent.MethodType;
  * Basically, this is the most common authentication, where you will get to a site and you will
  * need to enter a
  * username and password into an HTML form
+ * 
+ * Extended to allow for additional properties to be set
  */
 public class FormAuthInfo extends AuthInfo {
 
     private String usernameFormStr;
     private String passwordFormStr;
 
+    
+    private java.util.HashMap<String, String> additionalParameters = new java.util.HashMap<String, String>();
+    
     /**
      * Constructor
      *
@@ -66,4 +71,20 @@ public class FormAuthInfo extends AuthInfo {
     public void setPasswordFormStr(String passwordFormStr) {
         this.passwordFormStr = passwordFormStr;
     }
+    
+    /**
+     * Adds an additional field to be set when performing the authentication. 
+     * As many fields as necessary can be added here.
+     * 
+     * @param fieldName
+     * @param fieldValue
+     */
+    public void addFormParameter(String fieldName, String fieldValue) {
+    	additionalParameters.put(fieldName, fieldValue);
+    }
+    
+    public java.util.HashMap<String, String> getAdditionalFormParameters() {
+    	return additionalParameters;
+    }
+    
 }

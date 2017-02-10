@@ -239,6 +239,11 @@ public class PageFetcher extends Configurable {
             new BasicNameValuePair(authInfo.getUsernameFormStr(), authInfo.getUsername()));
         formParams.add(
             new BasicNameValuePair(authInfo.getPasswordFormStr(), authInfo.getPassword()));
+        
+        java.util.HashMap<String, String> additionalFields = authInfo.getAdditionalFormParameters();
+        for (String fieldName: additionalFields.keySet()) {
+        	 formParams.add(new BasicNameValuePair(fieldName, additionalFields.get(fieldName) ));
+        }
 
         try {
             UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formParams, "UTF-8");
