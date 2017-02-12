@@ -26,10 +26,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import javax.net.ssl.SSLContext;
 
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
@@ -59,6 +61,9 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.ssl.SSLContexts;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -230,9 +235,9 @@ public class PageFetcher extends Configurable {
      */
     private void doFormLogin(FormAuthInfo authInfo) {
         logger.info("FORM authentication for: " + authInfo.getLoginTarget());
-        String fullUri =
-            authInfo.getProtocol() + "://" + authInfo.getHost() + ":" + authInfo.getPort() +
-            authInfo.getLoginTarget();
+        //String fullUri = authInfo.getProtocol() + "://" + authInfo.getHost() + ":" + authInfo.getPort() + authInfo.getLoginTarget();
+        String fullUri = authInfo.getLoginURL();
+        
         HttpPost httpPost = new HttpPost(fullUri);
         List<NameValuePair> formParams = new ArrayList<>();
         formParams.add(
@@ -248,16 +253,42 @@ public class PageFetcher extends Configurable {
         try {
             UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formParams, "UTF-8");
             httpPost.setEntity(entity);
-            httpClient.execute(httpPost);
+            //httpClient.execute(httpPost);
+            
+            try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+				int code = response.getStatusLine().getStatusCode();
+				HttpEntity responseEntity = response.getEntity();
+				String content = EntityUtils.toString(responseEntity);
+				
+				Header[] headers = response.getAllHeaders();				
+				JSONArray jaHeaders = new JSONArray();
+				for (Header h: headers) {
+					JSONObject headerObj = new JSONObject().put("name", h.getName()).put("value",h.getValue());
+					jaHeaders.put(headerObj);
+				}
+				JSONObject testResult = new JSONObject();
+				testResult.put("statusCode", code);
+				testResult.put("content", content);
+				testResult.put("headers", jaHeaders);
+				logger.info("Authentication to "+fullUri+"\n" +testResult.toString(4));
+			} 
+			catch (Exception e) {
+				logger.error( "authentication exception: " + e.toString());
+			} 			
+            
+  
             logger.debug("Successfully Logged in with user: " + authInfo.getUsername() + " to: " +
                          authInfo.getHost());
         } catch (UnsupportedEncodingException e) {
             logger.error("Encountered a non supported encoding while trying to login to: " +
                          authInfo.getHost(), e);
-        } catch (ClientProtocolException e) {
+        } 
+        /*catch (ClientProtocolException e) {
             logger.error("While trying to login to: " + authInfo.getHost() +
                          " - Client protocol not supported", e);
-        } catch (IOException e) {
+        } 
+        */
+        catch (IOException e) {
             logger.error(
                 "While trying to login to: " + authInfo.getHost() + " - Error making request", e);
         }

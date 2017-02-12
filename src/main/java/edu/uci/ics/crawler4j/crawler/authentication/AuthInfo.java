@@ -31,6 +31,7 @@ public abstract class AuthInfo {
     protected int port;
     protected String username;
     protected String password;
+    protected String loginURL;
 
     /** Constructs a new AuthInfo. */
     public AuthInfo() {
@@ -52,6 +53,7 @@ public abstract class AuthInfo {
         throws MalformedURLException {
         this.authenticationType = authenticationType;
         this.httpMethod = httpMethod;
+        this.loginURL   = loginUrl;
         URL url = new URL(loginUrl);
         this.protocol = url.getProtocol();
         this.host = url.getHost();
@@ -175,5 +177,14 @@ public abstract class AuthInfo {
      */
     public void setPassword(String password) {
         this.password = password;
+    }
+    
+    /**
+     * What is the initial URL that was passed?
+     * 
+     * @return URL as set.
+     */
+    public String getLoginURL() {
+    	return loginURL;
     }
 }
