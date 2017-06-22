@@ -7,6 +7,7 @@ import org.junit.Test;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.Page;
@@ -17,7 +18,7 @@ import edu.uci.ics.crawler4j.url.WebURL;
 public class PageFetcherHtmlTest {
 
     @Rule
-    public WireMockRule wireMockRule = new WireMockRule();
+    public WireMockRule wireMockRule = new WireMockRule(wireMockConfig().dynamicPort());
 
     @Test
     public void testCustomPageFetcher()
@@ -51,14 +52,14 @@ public class PageFetcherHtmlTest {
         CrawlConfig cfg = new CrawlConfig();
         WebURL url = new WebURL();
 
-        url.setURL("http://localhost:8080/some/index.html");
+        url.setURL(String.format("http://localhost:%d/some/index.html", wireMockRule.port()));
         PageFetcher pf = new PageFetcherHtmlOnly(cfg);
         pf.fetchPage(url).fetchContent(new Page(url), 47);
 
         WireMock.verify(1, WireMock.headRequestedFor(WireMock.urlEqualTo("/some/index.html")));
         WireMock.verify(1, WireMock.getRequestedFor(WireMock.urlEqualTo("/some/index.html")));
 
-        url.setURL("http://localhost:8080/some/invoice.pdf");
+        url.setURL(String.format("http://localhost:%d/some/invoice.pdf", wireMockRule.port()));
         pf = new PageFetcherHtmlOnly(cfg);
         pf.fetchPage(url).fetchContent(new Page(url), 4);
 
