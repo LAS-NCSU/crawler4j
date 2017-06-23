@@ -12,6 +12,7 @@ logs/
 **/.idea/libraries/
 **/.idea/tasks.xml
 **/.idea/workspace.xml
+**/.idea
 *.iml
 
 ### JetBrains template
@@ -118,3 +119,4 @@ local.properties
 # Code Recommenders
 .recommenders/
 
+.checkstyle
