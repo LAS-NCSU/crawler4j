@@ -415,9 +415,4 @@ public class Page {
   	  return this.getParseData().getOutgoingUrls();
     }    
     
-    // Slankas: 20171012 - add ability to track the document UUID for a page object
-    private String _uuid = null;
-    
-    public String getAssignedUUID() { return _uuid; }
-    public void   setAssignedUUID(String newUUID) { _uuid = newUUID; }
 }
