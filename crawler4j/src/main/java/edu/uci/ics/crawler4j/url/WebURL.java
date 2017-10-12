@@ -233,4 +233,11 @@ public class WebURL implements Serializable {
     public String toString() {
         return url;
     }
+
+    // Slankas: 20171012, add ability to track a parent UUID
+    private String _parentUUID = null;
+	public void setParentUUID(String assignedUUID) {
+		_parentUUID = assignedUUID;		
+	}
+	public String getParentUUID() { return _parentUUID; }
 }
